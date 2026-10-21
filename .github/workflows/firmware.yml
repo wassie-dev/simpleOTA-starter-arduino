@@ -12,39 +12,12 @@ permissions:
   contents: read
 
 jobs:
-  chips:
-    name: Select chips
-    runs-on: ubuntu-latest
-    outputs:
-      list: ${{ steps.set.outputs.list }}
-    steps:
-      - id: set
-        env:
-          SIMPLEOTA_CHIP: ${{ vars.SIMPLEOTA_CHIP }}
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            chip="${SIMPLEOTA_CHIP:-esp32}"
-            if [[ ! "${chip}" =~ ^[a-z0-9]+$ ]]; then
-              echo "Unsupported SIMPLEOTA_CHIP '${chip}'." >&2
-              exit 1
-            fi
-            printf 'list=["%s"]\n' "${chip}" >> "${GITHUB_OUTPUT}"
-          else
-            printf '%s\n' 'list=["esp32","esp32c6"]' >> "${GITHUB_OUTPUT}"
-          fi
-
   firmware:
-    name: Build (${{ matrix.chip }})
-    needs: chips
+    name: Build
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        chip: ${{ fromJSON(needs.chips.outputs.list) }}
     env:
       SIMPLEOTA_API_TOKEN: ${{ secrets.SIMPLEOTA_API_TOKEN }}
-      SIMPLEOTA_CHIP: ${{ matrix.chip }}
+      SIMPLEOTA_CHIP: ${{ vars.SIMPLEOTA_CHIP }}
     steps:
       - uses: actions/checkout@v4
 
