@@ -4,7 +4,23 @@
 
 #define FIRMWARE_VERSION "1.0.0"
 
-SimpleOTAClient ota(SOTA_TOKEN, SimpleOTAClient::CHIP_ESP32);
+#if defined(CONFIG_IDF_TARGET_ESP32)
+static const char* chipFamily = SimpleOTAClient::CHIP_ESP32;
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+static const char* chipFamily = SimpleOTAClient::CHIP_ESP32S2;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+static const char* chipFamily = SimpleOTAClient::CHIP_ESP32S3;
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+static const char* chipFamily = SimpleOTAClient::CHIP_ESP32C3;
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
+static const char* chipFamily = SimpleOTAClient::CHIP_ESP32C6;
+#elif defined(CONFIG_IDF_TARGET_ESP32H2)
+static const char* chipFamily = SimpleOTAClient::CHIP_ESP32H2;
+#else
+#error "This chip is not supported. SimpleOTAClient supports esp32, esp32s2, esp32s3, esp32c3, esp32c6, and esp32h2."
+#endif
+
+SimpleOTAClient ota(SOTA_TOKEN, chipFamily);
 
 static void connectWiFi() {
     WiFi.mode(WIFI_STA);
