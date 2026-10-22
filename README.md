@@ -44,7 +44,7 @@ An example shape is `123e4567-e89b-12d3-a456-426614174000`. Copy yours. You will
 
 ### Device token
 
-The sketch authenticates with a device token. That token belongs to one device id, and the raw value is shown once.
+The sketch authenticates with a device token. The [device tokens](https://wiki.simpleota.com/guides/device-tokens/) guide describes that credential. That token belongs to one device id, and the raw value is shown once.
 
 This sketch does not pass its own device id. SimpleOTAClient 0.5.0 then sends the board's Wi-Fi station MAC, lowercase, with colons, in the form `aa:bb:cc:dd:ee:ff`. The device id you enter has to be that same string. With [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/esptool/basic-commands.html#read-mac-read-mac) installed, read it before the first flash:
 
@@ -58,7 +58,7 @@ Create the device and copy the token:
 
 1. Open the project.
 2. In the **Devices** card, click **Add device**.
-3. Enter that MAC as the device id. The [device tokens](https://wiki.simpleota.com/guides/device-tokens/) guide says to leave hardware metadata blank, because the board reports its chip, board, framework, and partition on the first check-in.
+3. Enter that MAC as the device id. The dashboard hardware fields can be left blank. This sketch reports its framework and chip family when it checks in, and it leaves board and partition out. OTA still matches, because the CI manifest leaves them out too.
 4. Submit the form. Copy the raw token from the yellow alert box immediately. SimpleOTA stores only a hash, so the page will not show it again.
 
 Device tokens start with `soto_dev_`. Paste this value into `secrets.h` and, later, into the `SIMPLEOTA_DEVICE_TOKEN` secret. Both copies need to be the same token, because a tagged build rewrites `secrets.h` from the GitHub secrets.
@@ -92,7 +92,7 @@ The boards are under **Tools > Board > ESP32 Arduino**. Pick the Dev Module row 
 
 Every chip in the table uses the same partition scheme: **Tools > Partition Scheme > Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)**. If **Tools > Flash Size** is available, set it to **4MB (32Mb)**.
 
-On the S2, S3, C3, C6, and H2, set **Tools > USB CDC On Boot** to **Enabled**. The build script passes `CDCOnBoot=cdc` for those chips, which is that Enabled option. Serial output from the sketch then uses the native USB port. If the board has two USB sockets, open the serial monitor on the native USB one. The original ESP32 Dev Module has no USB CDC On Boot menu, and you leave that menu alone.
+Open the serial monitor at 115200 baud, which is the speed of `Serial.begin` in the sketch. On the S2, S3, C3, C6, and H2, set **Tools > USB CDC On Boot** to **Enabled**. The build script passes `CDCOnBoot=cdc` for those chips, which is that Enabled option. Serial output from the sketch then uses the native USB port. If the board has two USB sockets, open the serial monitor on the native USB one. The original ESP32 Dev Module has no USB CDC On Boot menu, and you leave that menu alone.
 
 The sketch itself selects the chip family from the board you compile for. GitHub sends that same family when it uploads. If the IDE board and `SIMPLEOTA_CHIP` disagree, the device will not be offered the CI build.
 
@@ -116,7 +116,7 @@ cp simpleOTA-starter-arduino/secrets.example.h simpleOTA-starter-arduino/secrets
 
 `.gitignore` lists `secrets.h`, so git does not commit that file. It also ignores `build/`. Leave the example header as it is and edit only `secrets.h`.
 
-A tagged build refuses these placeholder strings. Use the real network name, password, and token before you flash, and store the same three strings in GitHub before you tag.
+Use the real network name, password, and token before you flash, and store the same three strings in GitHub before you tag.
 
 ## Flash over USB the first time
 
@@ -135,10 +135,10 @@ https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32
 2. Open **Tools > Board > Boards Manager**, search for `esp32`, and install **esp32 by Espressif Systems** version **3.3.12**. That is the core the GitHub workflow installs.
 3. Open **Sketch > Include Library > Manage Libraries**, search for `SimpleOTAClient`, and install version **0.5.0**.
 4. Open `simpleOTA-starter-arduino/simpleOTA-starter-arduino.ino`.
-5. Under **Tools**, select the Dev Module from the table above, the partition scheme **Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)**, Flash Size **4MB (32Mb)** when that menu exists, and **USB CDC On Boot > Enabled** for every chip except `esp32`.
-6. Under **Tools > Port**, select the board.
+5. Under **Tools**, select the Dev Module from the table above, the partition scheme **Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)**, and Flash Size **4MB (32Mb)** when that menu exists. Set **USB CDC On Boot** as described in Choose the chip.
+6. Under **Tools > Port**, select the board. If the board has two USB sockets, use the native USB port described in Choose the chip.
 7. Click Upload.
-8. Open **Tools > Serial Monitor** and set the speed to **115200**.
+8. Open **Tools > Serial Monitor** at 115200 baud, as described in Choose the chip.
 
 ### Arduino CLI
 
@@ -171,7 +171,7 @@ arduino-cli upload -p /dev/ttyUSB0 --input-dir build \
   simpleOTA-starter-arduino
 ```
 
-Replace `/dev/ttyUSB0` with the port from `arduino-cli board list`. On Windows that is a `COM` port. Then open the monitor at the same speed as `Serial.begin` in the sketch:
+Replace `/dev/ttyUSB0` with the port from `arduino-cli board list`. If the board has two USB sockets, use the native USB port described in Choose the chip. On Windows the port is a `COM` port. Then open the monitor at 115200 baud, as described in Choose the chip:
 
 ```bash
 arduino-cli monitor -p /dev/ttyUSB0 -c baudrate=115200
@@ -181,7 +181,7 @@ Press the reset button if the monitor was opened after the board had already boo
 
 ### A healthy serial log
 
-With the library debug log left off, a healthy boot from the sketch looks like this at 115200 baud:
+With the library debug log left off, a healthy boot from the sketch looks like this:
 
 ```text
 1.0.0
@@ -189,7 +189,7 @@ With the library debug log left off, a healthy boot from the sketch looks like t
 [app] Wi-Fi connected: 192.168.1.50
 ```
 
-`1.0.0` is the `FIRMWARE_VERSION` string. The dots after `Wi-Fi connecting` keep printing, twice a second, until the board joins the network. The address on the last line is whatever DHCP gave the board. Once that line has printed, the sketch checks SimpleOTA for an update and then waits.
+`1.0.0` is the `FIRMWARE_VERSION` string. The dots after `Wi-Fi connecting` keep printing, twice a second, until the board joins the network. The address on the last line is whatever DHCP gave the board. `setup()` prints that line when it connects Wi-Fi. The first update check runs on the first `loop()` pass, right after `setup()` returns, and then the sketch waits.
 
 ## GitHub secrets and variables
 
@@ -199,28 +199,18 @@ A tag `v*` is the run that can upload. It writes `secrets.h` from repository sec
 
 Add the values on the repository, not in an environment: **Settings**, then **Secrets and variables**, then **Actions**. The **Secrets** tab has **New repository secret**. The **Variables** tab has **New repository variable**.
 
-`SIMPLEOTA_PROJECT_ID` and `SIMPLEOTA_CHIP` go on the **Variables** tab. The workflow reads them with `vars`. A value saved on the **Secrets** tab is invisible to that lookup, so the workflow receives an empty string. An empty chip silently becomes `esp32`. An empty project id skips the upload.
+`SIMPLEOTA_PROJECT_ID` and `SIMPLEOTA_CHIP` go on the **Variables** tab. The workflow reads them with `vars`. A value saved on the **Secrets** tab is invisible to that lookup, so the workflow receives an empty string.
 
 | Name | Kind | Required | What it does | Where you get it | Example |
 | --- | --- | --- | --- | --- | --- |
-| `SIMPLEOTA_WIFI_SSID` | Secret | Required on a version tag. The tag build fails if it is missing. | Written into `secrets.h` as `WIFI_SSID`. | Your Wi-Fi network name. | `lab-wifi` |
-| `SIMPLEOTA_WIFI_PASSWORD` | Secret | Required on a version tag. The tag build fails if it is missing. | Written into `secrets.h` as `WIFI_PASS`. | Your Wi-Fi password. One line, with no line break. | `correct-horse` |
-| `SIMPLEOTA_DEVICE_TOKEN` | Secret | Required on a version tag. The tag build fails if it is missing. | Written into `secrets.h` as `SOTA_TOKEN`. | The device token from **Add device**. | `soto_dev_...` |
+| `SIMPLEOTA_WIFI_SSID` | Secret | Required on a version tag. The tag build fails if it is missing, still a placeholder, or contains a newline. | Written into `secrets.h` as `WIFI_SSID`. | Your Wi-Fi network name. | `lab-wifi` |
+| `SIMPLEOTA_WIFI_PASSWORD` | Secret | Required on a version tag. The tag build fails if it is missing, still a placeholder, or contains a newline. | Written into `secrets.h` as `WIFI_PASS`. | Your Wi-Fi password. | `correct-horse` |
+| `SIMPLEOTA_DEVICE_TOKEN` | Secret | Required on a version tag. The tag build fails if it is missing, still a placeholder, or contains a newline. | Written into `secrets.h` as `SOTA_TOKEN`. | The device token from **Add device**. | `soto_dev_...` |
 | `SIMPLEOTA_API_TOKEN` | Secret | Required only if this tag should upload. If it is empty the build stays green and the upload is skipped. | Authorizes the release action to upload the binary and start the rollout. | **Project API tokens**, **Issue token**, with the `api` scope. | `soto_proj_...` |
 | `SIMPLEOTA_PROJECT_ID` | Variable | Required only if this tag should upload. If it is empty while the API token is set, the build stays green and the upload is skipped. | Tells the release action which project to upload to. | **Project ID** under the project name. | `123e4567-e89b-12d3-a456-426614174000` |
 | `SIMPLEOTA_CHIP` | Variable | Optional. Empty means `esp32`. An unsupported value fails the build. | Selects the chip for the CI compile, and the chip family sent with the upload. | One of `esp32`, `esp32s2`, `esp32s3`, `esp32c3`, `esp32c6`, `esp32h2`. | `esp32s3` |
 
-What the workflow does when a value is missing, on a `v*` tag:
-
-- `SIMPLEOTA_WIFI_SSID`, `SIMPLEOTA_WIFI_PASSWORD`, or `SIMPLEOTA_DEVICE_TOKEN` empty: the **Write release secrets** step fails with `Missing secret SIMPLEOTA_WIFI_SSID.` (or the matching name). Nothing is uploaded.
-- One of those three still equal to `your-ssid`, `your-password`, or `your-device-token`: that step fails with `Secret SIMPLEOTA_DEVICE_TOKEN is still a placeholder.` (or the matching name).
-- One of those three contains a newline: that step fails with `Secret SIMPLEOTA_WIFI_PASSWORD contains a newline.` (or the matching name).
-- `SIMPLEOTA_API_TOKEN` empty: compile still succeeds. The job summary says the secret is not set, and the run stays green. The project id is not consulted on that run.
-- `SIMPLEOTA_API_TOKEN` set and `SIMPLEOTA_PROJECT_ID` empty: compile succeeds, the summary says the project id variable is empty, and nothing is uploaded. The run stays green.
-- `SIMPLEOTA_CHIP` empty: the script builds `esp32` and the upload is labeled `esp32`.
-- `SIMPLEOTA_CHIP` set to anything outside the table: the build fails with `Unsupported SIMPLEOTA_CHIP`.
-
-Pull requests and pushes to `main` skip the secret-writing step entirely, so those six names can all be absent and the compile can still pass.
+Troubleshooting quotes the message when a tag build fails one of these checks or skips the upload, and it explains how to start that tag again.
 
 ## Cut a release
 
@@ -254,10 +244,10 @@ The file that gets uploaded is `build/simpleOTA-starter-arduino.ino.bin`, the ap
 
 Open the project in SimpleOTA and switch the toggle at the top right to **Advanced**. Simple mode hides the artifact and deployment lists.
 
-- The **Firmware artifacts** card, and the Firmware artifacts page behind it, lists the build. You will see the build number SimpleOTA assigned and the version label from the sketch (`1.0.1` in the example above). The version label is for you. Update order follows the build number.
-- The **Deployments** card, and the **Deployments** page, lists the rollout. This workflow starts it, on the `stable` channel, at 100%, so the state is `active`. The progress cards count check-ins. **Confirmed** counts check-ins that confirmed the new build.
+- The **Firmware artifacts** card, and the page behind it, list the build. You will see the build number SimpleOTA assigned and the version label from the sketch (`1.0.1` in the example above). The version label is for you. Update order follows the build number.
+- The **Deployments** card, and the page behind it, list the rollout. This workflow starts it, on the `stable` channel, at 100%, so the state is `active`. The progress cards count check-ins. **Confirmed** counts check-ins that confirmed the new build.
 
-The sketch checks in when `loop()` runs, which is as soon as Wi-Fi connects, and then waits `SIMPLEOTA_CHECK_INTERVAL_S` seconds. In SimpleOTAClient 0.5.0 that constant is 3600, so the gap is about an hour. Reset the board if you want the next check immediately. A release can sit until that next check.
+The first update check runs on the first `loop()` pass, right after `setup()` connects Wi-Fi. Later passes wait `SIMPLEOTA_CHECK_INTERVAL_S` seconds. In SimpleOTAClient 0.5.0 that constant is 3600, so the gap is about an hour. Press reset after the release finishes to check right away, instead of waiting up to an hour.
 
 On the serial monitor, a successful update is quiet and then familiar. The library downloads the binary, checks its SHA-256, writes the spare app slot, and reboots. This sketch does not call `SimpleOTAClient::setDebug`, so those stages do not print their own lines. After the reboot you see the new version and the Wi-Fi lines again:
 
@@ -281,39 +271,55 @@ Automatic rollback: after a successful flash the new image still has to confirm.
 
 These are the messages the scripts and the workflow actually print.
 
-**`Missing secret SIMPLEOTA_WIFI_SSID.`** The same line is printed for `SIMPLEOTA_WIFI_PASSWORD` and `SIMPLEOTA_DEVICE_TOKEN`. You tagged a release and that repository secret is empty. Add it on the Secrets tab and run the tag again. The upload does not start.
+**`Missing secret SIMPLEOTA_WIFI_SSID.`** The **Write release secrets** step prints this when that secret is empty. The same line is printed for `SIMPLEOTA_WIFI_PASSWORD` and `SIMPLEOTA_DEVICE_TOKEN`. The table above says the secret is required on a version tag. Add it on the Secrets tab. A tag that has already been pushed does not start Actions again. Delete that tag locally and on the remote, then push the same tag, or push a new tag:
 
-**`Secret SIMPLEOTA_DEVICE_TOKEN is still a placeholder.`** The same line is printed for the Wi-Fi secrets. The secret's value is still one of `your-ssid`, `your-password`, or `your-device-token`. Replace it with the real value.
+```bash
+git tag -d v1.0.1
+git push origin --delete v1.0.1
+git tag v1.0.1
+git push origin v1.0.1
+```
 
-**`Secret SIMPLEOTA_WIFI_PASSWORD contains a newline.`** The same line is printed for the other two secrets. The secret has a line break in it. Enter it as a single line.
+A new tag has to match `FIRMWARE_VERSION`, and the Cut a release section shows how to bump the sketch and push that tag.
 
-**`secrets.h uses a placeholder value.`** A release compile found `your-ssid`, `your-password`, or `your-device-token` still written in `secrets.h`. On GitHub this usually means the secrets above were still placeholders. Locally it means `secrets.h` was not edited.
+**`Secret SIMPLEOTA_DEVICE_TOKEN is still a placeholder.`** The same line is printed for the Wi-Fi secrets. Replace the placeholder, as described in Add your local secrets, and then delete and push the tag with the commands above.
 
-**`Release build is missing secrets.h.`** A release compile ran without that header. On GitHub the write step creates it. Locally, copy `secrets.example.h` to `secrets.h` first, or export the three `SIMPLEOTA_*` values and run `./scripts/secrets.sh write`.
+**`Secret SIMPLEOTA_WIFI_PASSWORD contains a newline.`** The same line is printed for the other two secrets. The table says a newline fails the tag build. Enter the secret as a single line, and then delete and push the tag with the commands above.
+
+**`secrets.h uses a placeholder value.`** A release compile found a placeholder from `secrets.example.h` still in `secrets.h`. Replace it as described in Add your local secrets. On GitHub, that file is written from the repository secrets, so correct those and push the tag again with the commands above.
+
+**`Release build is missing secrets.h.`** A release compile ran without that header. Copy `secrets.example.h` to `secrets.h`, as described in Add your local secrets. On GitHub the write step creates the file. Locally, you can also export the three `SIMPLEOTA_*` values and run `./scripts/secrets.sh write`.
 
 **`FIRMWARE_VERSION was not found in the sketch.`** The version line is missing, or it is no longer a single line of the form `#define FIRMWARE_VERSION "1.0.1"`.
 
-**`Tag v1.0.1 does not match FIRMWARE_VERSION 1.0.0.`** The tag and the sketch disagree. Either change `FIRMWARE_VERSION` to the version in the tag and push that commit, or point a new tag at the sketch you meant to ship:
+**`Tag v1.0.1 does not match FIRMWARE_VERSION 1.0.0.`** The tag and the sketch disagree. The common case is that you meant the new version. Set `FIRMWARE_VERSION` to match the tag, commit, and push that commit. Then delete the old tag locally and on the remote, and tag the new commit again:
 
 ```bash
-git push origin --delete v1.0.1
+git add simpleOTA-starter-arduino/simpleOTA-starter-arduino.ino
+git commit -m "Bump firmware to 1.0.1"
+git push origin HEAD
 git tag -d v1.0.1
-git tag v1.0.0
-git push origin v1.0.0
+git push origin --delete v1.0.1
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
-**`Unsupported SIMPLEOTA_CHIP 'esp32s4'. Supported chips: esp32, esp32s2, esp32s3, esp32c3, esp32c6, esp32h2.`** The `SIMPLEOTA_CHIP` variable is not one of those six values. Fix it on the Variables tab. An empty variable is allowed and means `esp32`.
+If you tagged too high by mistake, delete that tag locally and on the remote, then push a tag that matches the version already in the sketch.
 
-**The Build job is green, and the summary says the upload was skipped.** Two summaries exist:
+**`Unsupported SIMPLEOTA_CHIP 'esp32s4'. Supported chips: esp32, esp32s2, esp32s3, esp32c3, esp32c6, esp32h2.`** Set `SIMPLEOTA_CHIP` to one of the values in the table above. An empty variable means `esp32`.
 
-- `The SIMPLEOTA_API_TOKEN secret is not set. This tag built the firmware and did not upload it or start a rollout.` Add the API token on the Secrets tab.
-- `SIMPLEOTA_API_TOKEN is set, but the SIMPLEOTA_PROJECT_ID repository variable is empty. The release action requires both, so nothing was uploaded.` Add the project UUID on the Variables tab. A project id saved as a secret produces this empty result.
+**The Build job is green, and the summary says the upload was skipped.** The table rows for `SIMPLEOTA_API_TOKEN` and `SIMPLEOTA_PROJECT_ID` describe the two cases. The summaries are:
+
+- `The SIMPLEOTA_API_TOKEN secret is not set. This tag built the firmware and did not upload it or start a rollout.`
+- `SIMPLEOTA_API_TOKEN is set, but the SIMPLEOTA_PROJECT_ID repository variable is empty. The release action requires both, so nothing was uploaded.` A project id saved as a secret produces this result.
+
+Add the missing value. A tag that has already been pushed does not start Actions again. Delete it locally and on the remote, then push the same tag, using the commands in the missing-secret note above, or push a new tag.
 
 **`[app] OTA failed, continuing`** The board reached `apply()` and it did not succeed. The current firmware keeps running. The usual causes are a download that stopped or a SHA-256 mismatch. The deployment timeline for that device has the reason the library reported.
 
 **`[SimpleOTAClient] WARNING: server rejected the token (HTTP 401/403). Check your project token.`** The board did check in, and SimpleOTA refused `SOTA_TOKEN`. The message says "project token" even when the sketch is using a device token. Check that `secrets.h` holds the `soto_dev_...` token for this board's MAC, and that a later tag was built with the same `SIMPLEOTA_DEVICE_TOKEN`.
 
-**The serial monitor stays blank.** Set the speed to 115200. On an S2, S3, C3, C6, or H2, USB CDC On Boot has to be Enabled, and the monitor has to be on the native USB port. Press reset after you open the monitor.
+**The serial monitor stays blank.** Set the baud rate, USB CDC On Boot, and the USB port as described in Choose the chip. Press reset after you open the monitor.
 
 **Wi-Fi never gets past the dots.** `WIFI_SSID` or `WIFI_PASS` does not match the network. The board will not check in until that line connects. Fix `secrets.h`, flash over USB again, and update the matching GitHub secrets before the next tag.
 
