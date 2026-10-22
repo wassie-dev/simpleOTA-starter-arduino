@@ -6,7 +6,7 @@ SKETCH="${ROOT}/simpleOTA-starter-arduino"
 BUILD="${ROOT}/build"
 
 CORE_VERSION="3.3.12"
-LIB_VERSION="0.5.0"
+LIB_VERSION="0.6.0"
 INDEX_URL="https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 
 fqbn_for() {
