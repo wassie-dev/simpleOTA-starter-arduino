@@ -195,7 +195,7 @@ With the library debug log left off, a healthy boot from the sketch looks like t
 
 Pull requests, and pushes to `main`, only compile. On those runs the workflow does not read your tokens. If `secrets.h` is missing, `scripts/build.sh` copies the example header and compiles that. The run stays green.
 
-A tag `v*` is the run that can upload. It writes `secrets.h` from repository secrets, compiles, and uploads only when both the API token and the project id are present.
+A tag `v*` is the run that can upload. It writes `secrets.h` from repository secrets, compiles, and uploads only when both the API token and the project id are present. Tag builds take their Wi-Fi settings from the GitHub secrets `SIMPLEOTA_WIFI_SSID` and `SIMPLEOTA_WIFI_PASSWORD`. Those must match the network the board uses, or the OTA image will not reconnect.
 
 Add the values on the repository, not in an environment: **Settings**, then **Secrets and variables**, then **Actions**. The **Secrets** tab has **New repository secret**. The **Variables** tab has **New repository variable**.
 
@@ -236,7 +236,7 @@ The tag has to match the string in the sketch exactly. `v1.0.1` matches `1.0.1`.
 Tag v1.0.1 does not match FIRMWARE_VERSION 1.0.0.
 ```
 
-Watch the run on GitHub under the **Actions** tab. Open the **Firmware** workflow, then the run for the tag you pushed. The job is named **Build**. When the API token and the project id are both set, the job summary lists the server build number, the version label, security `basic`, and the channel `stable` at 100%. `basic` here means the binary was uploaded unsigned.
+Watch the run on GitHub under the **Actions** tab. Open the **Firmware** workflow, then the run for the tag you pushed. The job is named **Build**. When the API token and the project id are both set, the job summary heading is `SimpleOTA release`. The table under it lists Build, Version, Security (`basic` when unsigned), and Channel (`stable` at 100%).
 
 The file that gets uploaded is `build/simpleOTA-starter-arduino.ino.bin`, the application binary. You do not upload a file yourself.
 
@@ -248,6 +248,8 @@ Open the project in SimpleOTA and switch the toggle at the top right to **Advanc
 - The **Deployments** card, and the page behind it, list the rollout. This workflow starts it, on the `stable` channel, at 100%, so the state is `active`. The progress cards count check-ins. **Confirmed** counts check-ins that confirmed the new build.
 
 The first update check runs on the first `loop()` pass, right after `setup()` connects Wi-Fi. Later passes wait `SIMPLEOTA_CHECK_INTERVAL_S` seconds. In SimpleOTAClient 0.5.0 that constant is 3600, so the gap is about an hour. Press reset after the release finishes to check right away, instead of waiting up to an hour.
+
+The image from that tag build takes its Wi-Fi settings from `SIMPLEOTA_WIFI_SSID` and `SIMPLEOTA_WIFI_PASSWORD`. Those secrets have to match the network the board uses, or the image will not reconnect.
 
 On the serial monitor, a successful update is quiet and then familiar. The library downloads the binary, checks its SHA-256, writes the spare app slot, and reboots. This sketch does not call `SimpleOTAClient::setDebug`, so those stages do not print their own lines. After the reboot you see the new version and the Wi-Fi lines again:
 
@@ -315,13 +317,15 @@ If you tagged too high by mistake, delete that tag locally and on the remote, th
 
 Add the missing value. A tag that has already been pushed does not start Actions again. Delete it locally and on the remote, then push the same tag, using the commands in the missing-secret note above, or push a new tag.
 
+A successful tag run shows the job summary heading `SimpleOTA release`. The table under it lists Build, Version, Security (`basic` when unsigned), and Channel (`stable` at 100%).
+
 **`[app] OTA failed, continuing`** The board reached `apply()` and it did not succeed. The current firmware keeps running. The usual causes are a download that stopped or a SHA-256 mismatch. The deployment timeline for that device has the reason the library reported.
 
-**`[SimpleOTAClient] WARNING: server rejected the token (HTTP 401/403). Check your project token.`** The board did check in, and SimpleOTA refused `SOTA_TOKEN`. The message says "project token" even when the sketch is using a device token. Check that `secrets.h` holds the `soto_dev_...` token for this board's MAC, and that a later tag was built with the same `SIMPLEOTA_DEVICE_TOKEN`.
+**`[SimpleOTAClient] WARNING: server rejected the token (HTTP 401/403). Check your project token.`** The board did check in, and SimpleOTA refused `SOTA_TOKEN`. The wording "project token" is generic. The firmware always uses the device token (`soto_dev_`), never a `soto_proj_` API token. Check that `secrets.h` holds the `soto_dev_...` token for this board's MAC, and that a later tag was built with the same `SIMPLEOTA_DEVICE_TOKEN`.
 
 **The serial monitor stays blank.** Set the baud rate, USB CDC On Boot, and the USB port as described in Choose the chip. Press reset after you open the monitor.
 
-**Wi-Fi never gets past the dots.** `WIFI_SSID` or `WIFI_PASS` does not match the network. The board will not check in until that line connects. Fix `secrets.h`, flash over USB again, and update the matching GitHub secrets before the next tag.
+**Wi-Fi never gets past the dots.** `WIFI_SSID` or `WIFI_PASS` does not match the network. The board will not check in until that line connects. A USB flash uses `secrets.h`. A tag build uses `SIMPLEOTA_WIFI_SSID` and `SIMPLEOTA_WIFI_PASSWORD`. Fix `secrets.h`, flash over USB again, and update those GitHub secrets before the next tag.
 
 ## Help
 
