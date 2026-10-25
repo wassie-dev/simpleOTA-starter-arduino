@@ -6,8 +6,8 @@ This repository is a GitHub template for starting your own ESP32 Arduino project
 
 Your copy comes with three pieces that already work together:
 
-- `simpleOTA-starter-arduino/` is an Arduino sketch that joins your Wi-Fi and uses the [SimpleOTAClient](https://github.com/xanderwasserman/SimpleOTAClient-Arduino) library to check SimpleOTA for new firmware, install it, and confirm it after the board restarts.
-- `.github/workflows/firmware.yml` builds the sketch on every push to `main` and every pull request, and when you push a tag such as `v1.0.1` it uploads that build to your SimpleOTA project with [simpleOTA-actions](https://github.com/xanderwasserman/simpleOTA-actions).
+- `simpleOTA-starter-arduino/` is an Arduino sketch that joins your Wi-Fi and uses the [SimpleOTAClient](https://github.com/wassie-dev/simpleOTAClient-Arduino) library to check SimpleOTA for new firmware, install it, and confirm it after the board restarts.
+- `.github/workflows/firmware.yml` builds the sketch on every push to `main` and every pull request, and when you push a tag such as `v1.0.1` it uploads that build to your SimpleOTA project with [simpleOTA-actions](https://github.com/wassie-dev/simpleOTA-actions).
 - `scripts/build.sh` builds the same firmware on your computer for the first USB flash.
 
 The workflow installs SimpleOTAClient 0.6.0. It passes no signing key, so the upload is unsigned and the release is stored as `basic`.

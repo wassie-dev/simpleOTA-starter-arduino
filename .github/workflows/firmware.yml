@@ -77,7 +77,7 @@ jobs:
 
       - name: Upload and start rollout
         if: startsWith(github.ref, 'refs/tags/v') && env.SIMPLEOTA_API_TOKEN != '' && vars.SIMPLEOTA_PROJECT_ID != ''
-        uses: xanderwasserman/simpleOTA-actions@v1.0.3
+        uses: wassie-dev/simpleOTA-actions@v1.0.3
         with:
           api-token: ${{ secrets.SIMPLEOTA_API_TOKEN }}
           project-id: ${{ vars.SIMPLEOTA_PROJECT_ID }}
