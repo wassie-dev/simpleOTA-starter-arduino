@@ -10,7 +10,7 @@ Your copy comes with three pieces that already work together:
 - `.github/workflows/firmware.yml` builds the sketch on every push to `main` and every pull request, and when you push a tag such as `v1.0.1` it uploads that build to your SimpleOTA project with [simpleOTA-actions](https://github.com/wassie-dev/simpleOTA-actions).
 - `scripts/build.sh` builds the same firmware on your computer for the first USB flash.
 
-The workflow installs SimpleOTAClient 0.6.0. It passes no signing key, so the upload is unsigned and the release is stored as `basic`.
+The workflow installs SimpleOTAClient 1.0.0. It passes no signing key, so the upload is unsigned and the release is stored as `basic`.
 
 ## What you need
 
@@ -54,7 +54,7 @@ It looks like `123e4567-e89b-12d3-a456-426614174000`. Copy yours, because you wi
 
 The sketch authenticates with a device token, which the [device tokens](https://wiki.simpleota.com/guides/device-tokens/) guide describes. Each token belongs to one device id, and its raw value is shown once.
 
-This sketch does not pass its own device id, so SimpleOTAClient 0.6.0 sends the board's Wi-Fi station MAC instead, in lowercase with colons like `aa:bb:cc:dd:ee:ff`, and the device id you enter has to be that same string. With [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/esptool/basic-commands.html#read-mac-read-mac) installed, read it before the first flash:
+This sketch does not pass its own device id, so SimpleOTAClient 1.0.0 sends the board's Wi-Fi station MAC instead, in lowercase with colons like `aa:bb:cc:dd:ee:ff`, and the device id you enter has to be that same string. With [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/esptool/basic-commands.html#read-mac-read-mac) installed, read it before the first flash:
 
 ```bash
 esptool --port /dev/ttyUSB0 read-mac
@@ -102,7 +102,7 @@ Every chip in the table uses the same partition scheme: **Tools > Partition Sche
 
 Open the serial monitor at 115200 baud, which is the speed of `Serial.begin` in the sketch. On the S2, S3, C3, C6, and H2, set **Tools > USB CDC On Boot** to **Enabled**, which matches the `CDCOnBoot=cdc` the build script passes for those chips, so serial output from the sketch uses the native USB port. If the board has two USB sockets, open the serial monitor on the native USB one. The original ESP32 Dev Module has no USB CDC On Boot menu, so there is nothing to set there.
 
-The sketch selects the chip family from the board you compile for, and GitHub sends that same family when it uploads, so if the IDE board and `SIMPLEOTA_CHIP` disagree, the device will not be offered the CI build.
+The library reports the chip family of the board you compile for, and GitHub sends that same family when it uploads, so if the IDE board and `SIMPLEOTA_CHIP` disagree, the device will not be offered the CI build.
 
 ## Add your local secrets
 
@@ -130,7 +130,7 @@ Use the real network name, password, and token before you flash, and store the s
 
 The first USB flash writes the bootloader, the partition table, and the application, while an over-the-air update replaces only the application, in the other app slot (`app0` and `app1` in the default table), and cannot change the partition table. That means the scheme you pick now stays on the board until you flash over USB again, and the default 4 MB scheme is the one with the two app slots SimpleOTA needs to install an update and roll back.
 
-For a local IDE build, install SimpleOTAClient 0.6.0 yourself, and the CLI path below installs that same version for you.
+For a local IDE build, install SimpleOTAClient 1.0.0 yourself, and the CLI path below installs that same version for you.
 
 ### Arduino IDE
 
@@ -141,7 +141,7 @@ https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32
 ```
 
 2. Open **Tools > Board > Boards Manager**, search for `esp32`, and install **esp32 by Espressif Systems** version **3.3.12**, which is the core the GitHub workflow installs.
-3. Open **Sketch > Include Library > Manage Libraries**, search for `SimpleOTAClient`, and install version **0.6.0**.
+3. Open **Sketch > Include Library > Manage Libraries**, search for `SimpleOTAClient`, and install version **1.0.0**.
 4. Open `simpleOTA-starter-arduino/simpleOTA-starter-arduino.ino`.
 5. Under **Tools**, select the Dev Module from the table above, the partition scheme **Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)**, and Flash Size **4MB (32Mb)** when that menu exists. Set **USB CDC On Boot** as described in Choose the chip.
 6. Under **Tools > Port**, select the board. If the board has two USB sockets, use the native USB port described in Choose the chip.
@@ -161,7 +161,7 @@ export SIMPLEOTA_CHIP=esp32
 arduino-cli board list
 ```
 
-`scripts/build.sh` installs ESP32 core 3.3.12 and SimpleOTAClient 0.6.0, then compiles into `build/`. Upload that build with the same fully qualified board name the script used, which for `esp32` is:
+`scripts/build.sh` installs ESP32 core 3.3.12 and SimpleOTAClient 1.0.0, then compiles into `build/`. Upload that build with the same fully qualified board name the script used, which for `esp32` is:
 
 ```bash
 arduino-cli upload -p /dev/ttyUSB0 --input-dir build \
@@ -253,9 +253,9 @@ Open the project in SimpleOTA and switch the toggle at the top right to **Advanc
 - The **Firmware artifacts** card, and the page behind it, list the build with the build number SimpleOTA assigned and the version label from the sketch (`1.0.1` in the example above). The version label is for you, and update order follows the build number.
 - The **Deployments** card, and the page behind it, list the rollout, which this workflow starts on the `stable` channel at 100%, so the state is `active`. The progress cards count check-ins, and **Confirmed** counts the ones that confirmed the new build.
 
-The first update check runs on the first `loop()` pass, right after `setup()` connects Wi-Fi, and later passes wait `SIMPLEOTA_CHECK_INTERVAL_S` seconds, which is 3600 in SimpleOTAClient 0.6.0, so about an hour. Press reset after the release finishes to check right away instead of waiting.
+The first update check runs on the first `loop()` pass, right after `setup()` connects Wi-Fi, and later passes wait 3600 seconds, so about an hour, matching the default `check_interval_s` in SimpleOTAClient 1.0.0. Press reset after the release finishes to check right away instead of waiting.
 
-On the serial monitor, a successful update is quiet and then familiar. The library downloads the binary, checks its SHA-256, writes the spare app slot, and reboots, but this sketch does not call `SimpleOTAClient::setDebug`, so those stages do not print their own lines. After the reboot you see the new version and the Wi-Fi lines again:
+On the serial monitor, a successful update is quiet and then familiar. The library downloads the binary, checks its SHA-256, writes the spare app slot, and reboots. This sketch leaves the `simpleota` log at its default, so those stages do not print their own lines. Warnings and errors still print. After the reboot you see the new version and the Wi-Fi lines again:
 
 ```text
 1.0.1
@@ -263,7 +263,7 @@ On the serial monitor, a successful update is quiet and then familiar. The libra
 [app] Wi-Fi connected: 192.168.1.50
 ```
 
-`loop()` then calls `confirmRunning()`, which prints nothing but marks the running image as good, and the `check()` later in that same loop reports `confirmed` to SimpleOTA. On the deployment page, open a checked-in device row and use **Timeline** to see the stages the device reported.
+`loop()` then calls `simpleota_confirm()`, which prints nothing but marks the running image as good, and the `simpleota_check()` later in that same loop reports `confirmed` to SimpleOTA. On the deployment page, open a checked-in device row and use **Timeline** to see the stages the device reported.
 
 If the download or the SHA-256 check fails, the sketch prints this line and keeps running the firmware that was already on the board:
 
@@ -271,7 +271,7 @@ If the download or the SHA-256 check fails, the sketch prints this line and keep
 [app] OTA failed, continuing
 ```
 
-After a successful flash the new image still has to confirm, and this sketch confirms at the start of `loop()`, once Wi-Fi is up. If a new image never confirms within the library's window (300 seconds from the first `check()` or `confirmRunning()` call), the board automatically rolls back by rebooting into the previous firmware, and the serial monitor prints the old version string again, for example `1.0.0`, followed by the Wi-Fi lines. SimpleOTA records a `rolled_back` event, and by default the deployment pauses on the first one, so later devices are not offered that build while you look at it.
+After a successful flash the new image still has to confirm, and this sketch confirms at the start of `loop()`, once Wi-Fi is up. If a new image never confirms within the library's window (300 seconds from `simpleota_init()`), the board automatically rolls back by rebooting into the previous firmware, and the serial monitor prints the old version string again, for example `1.0.0`, followed by the Wi-Fi lines. SimpleOTA records a `rolled_back` event, and by default the deployment pauses on the first one, so later devices are not offered that build while you look at it.
 
 ## Troubleshooting
 
@@ -323,9 +323,11 @@ Add the missing value. A tag that has already been pushed does not start Actions
 
 A successful tag run shows the job summary heading `SimpleOTA release`, with a table listing Build, Version, Security (`basic` when unsigned), and Channel (`stable` at 100%).
 
-**`[app] OTA failed, continuing`** The board reached `apply()` and it did not succeed, so the current firmware keeps running. The usual causes are a download that stopped or a SHA-256 mismatch, and the deployment timeline for that device has the reason the library reported.
+**`[app] OTA failed, continuing`** The board reached `simpleota_apply()` and it did not succeed, so the current firmware keeps running. The usual causes are a download that stopped or a SHA-256 mismatch, and the deployment timeline for that device has the reason the library reported.
 
-**`[SimpleOTAClient] WARNING: server rejected the token (HTTP 401/403). Check your project token.`** The board did check in, and SimpleOTA refused `SOTA_TOKEN`. The client prints "Check your project token" even though this firmware always uses the device token (`soto_dev_`) and never a `soto_proj_` API token, so check that `secrets.h` holds the `soto_dev_...` token for this board's MAC and that a later tag was built with the same `SIMPLEOTA_DEVICE_TOKEN`.
+**`[app] SimpleOTA did not start; see the log above`** `simpleota_init()` did not return `ESP_OK`. The log line above it names the cause, such as a token that is missing or contains a control character.
+
+**`server rejected the token (HTTP 401)`** The library logs this on the `simpleota` tag, and the same warning is printed for HTTP 403 with that status in the line. The board did check in, and SimpleOTA refused `SOTA_TOKEN`. This firmware uses the device token (`soto_dev_`) and never a `soto_proj_` API token, so check that `secrets.h` holds the `soto_dev_...` token for this board's MAC and that a later tag was built with the same `SIMPLEOTA_DEVICE_TOKEN`.
 
 **The serial monitor stays blank.** Set the baud rate, USB CDC On Boot, and the USB port as described in Choose the chip, then press reset after you open the monitor.
 

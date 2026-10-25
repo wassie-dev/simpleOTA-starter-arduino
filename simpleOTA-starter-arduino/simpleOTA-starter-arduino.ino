@@ -1,26 +1,14 @@
 #include <WiFi.h>
-#include <SimpleOTAClient.h>
+#include <simpleota.h>
 #include "secrets.h"
 
 #define FIRMWARE_VERSION "1.0.0"
 
-#if defined(CONFIG_IDF_TARGET_ESP32)
-static const char* chipFamily = SimpleOTAClient::CHIP_ESP32;
-#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-static const char* chipFamily = SimpleOTAClient::CHIP_ESP32S2;
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-static const char* chipFamily = SimpleOTAClient::CHIP_ESP32S3;
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-static const char* chipFamily = SimpleOTAClient::CHIP_ESP32C3;
-#elif defined(CONFIG_IDF_TARGET_ESP32C6)
-static const char* chipFamily = SimpleOTAClient::CHIP_ESP32C6;
-#elif defined(CONFIG_IDF_TARGET_ESP32H2)
-static const char* chipFamily = SimpleOTAClient::CHIP_ESP32H2;
-#else
-#error "This chip is not supported. SimpleOTAClient supports esp32, esp32s2, esp32s3, esp32c3, esp32c6, and esp32h2."
+#if !(defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S2) || \
+      defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
+      defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2))
+#error "This chip is not supported. This starter supports esp32, esp32s2, esp32s3, esp32c3, esp32c6, and esp32h2."
 #endif
-
-SimpleOTAClient ota(SOTA_TOKEN, chipFamily);
 
 static void connectWiFi() {
     WiFi.mode(WIFI_STA);
@@ -38,7 +26,13 @@ void setup() {
     Serial.println(FIRMWARE_VERSION);
     delay(200);
     connectWiFi();
-    ota.setVersionLabel(FIRMWARE_VERSION);
+
+    simpleota_config_t cfg = {};
+    cfg.token = SOTA_TOKEN;
+    cfg.version_label = FIRMWARE_VERSION;
+    if (simpleota_init(&cfg) != ESP_OK) {
+        Serial.println("[app] SimpleOTA did not start; see the log above");
+    }
 }
 
 void loop() {
@@ -46,14 +40,15 @@ void loop() {
         connectWiFi();
     }
 
-    ota.confirmRunning();
+    simpleota_confirm();
 
-    if (ota.check()) {
-        OTAResult r = ota.apply();
-        if (r != OTA_SUCCESS) {
+    bool update = false;
+    if (simpleota_check(&update) == ESP_OK && update) {
+        simpleota_result_t r = simpleota_apply();
+        if (r != SIMPLEOTA_OK) {
             Serial.println("[app] OTA failed, continuing");
         }
     }
 
-    delay((uint32_t)SIMPLEOTA_CHECK_INTERVAL_S * 1000UL);
+    delay(3600UL * 1000UL);
 }
